@@ -14,6 +14,14 @@
   - [x] Add download functionality for generated SDK
 - [x] Style the application with dark theme support
 - [x] Add error handling and validation
+- [x] Implement logging system for debugging
+  - [x] Create server-side logger service
+  - [x] Create client-side logger service
+  - [x] Create API endpoint for client logs
+  - [x] Add logging to API endpoints
+  - [x] Add logging to AI provider integrations
+  - [x] Add logging to client-side components
+  - [x] Create log viewing script
 - [ ] Test the application
 - [ ] Deploy to production
 
@@ -25,3 +33,4 @@
 - [x] Implement doc2service tool with all required features
 - [x] Style the application with dark theme support
 - [x] Add error handling and validation
+- [x] Implement logging system for debugging
