@@ -1,5 +1,9 @@
 import axios from "axios";
 import logger from "@/lib/logger";
+import {
+  truncateToTokenLimit,
+  getModelTokenLimit,
+} from "@/lib/utils/truncateText";
 
 export async function generateSDKWithOpenRouter(
   documentation: string,
@@ -19,10 +23,25 @@ export async function generateSDKWithOpenRouter(
     // Model is passed as a parameter
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+    // Get token limit for the model and truncate documentation if needed
+    const tokenLimit = getModelTokenLimit("openrouter", model);
+    const originalLength = documentation.length;
+    const truncatedDocumentation = truncateToTokenLimit(
+      documentation,
+      tokenLimit
+    );
+
+    if (truncatedDocumentation.length < originalLength) {
+      logger.warn(
+        `Documentation truncated from ${originalLength} characters to ${truncatedDocumentation.length} characters to fit within token limit for OpenRouter model ${model}`
+      );
+    }
+
     logger.debug("OpenRouter request configuration", {
       model,
       language,
       appUrl,
+      tokenLimit,
     });
 
     try {
@@ -41,7 +60,7 @@ export async function generateSDKWithOpenRouter(
               role: "user",
               content: `Here is the API documentation. Please generate a complete SDK in ${language} that wraps this API:
 
-              ${documentation}`,
+              ${truncatedDocumentation}`,
             },
           ],
           temperature: 0.2,

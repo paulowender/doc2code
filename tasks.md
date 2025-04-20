@@ -28,6 +28,11 @@
   - [x] Update AI providers to use selected model
   - [x] Update API to process model selection
   - [x] Add custom scrollbar for model selection dropdown
+- [x] Implement token limit handling
+  - [x] Add text truncation utility
+  - [x] Update AI providers to respect token limits
+  - [x] Improve error handling for token limit errors
+  - [x] Add user-friendly error messages
 - [ ] Test the application
 - [ ] Deploy to production
 
@@ -41,3 +46,4 @@
 - [x] Add error handling and validation
 - [x] Implement logging system for debugging
 - [x] Add model selection for AI providers
+- [x] Implement token limit handling

@@ -1,5 +1,9 @@
 import OpenAI from "openai";
 import logger from "@/lib/logger";
+import {
+  truncateToTokenLimit,
+  getModelTokenLimit,
+} from "@/lib/utils/truncateText";
 
 let openai: OpenAI;
 
@@ -37,6 +41,20 @@ export async function generateSDKWithOpenAI(
       throw new Error("OPENAI_API_KEY is not set");
     }
 
+    // Get token limit for the model and truncate documentation if needed
+    const tokenLimit = getModelTokenLimit("openai", model);
+    const originalLength = documentation.length;
+    const truncatedDocumentation = truncateToTokenLimit(
+      documentation,
+      tokenLimit
+    );
+
+    if (truncatedDocumentation.length < originalLength) {
+      logger.warn(
+        `Documentation truncated from ${originalLength} characters to ${truncatedDocumentation.length} characters to fit within token limit for OpenAI model ${model}`
+      );
+    }
+
     const response = await openai.chat.completions.create({
       model: model,
       messages: [
@@ -50,7 +68,7 @@ export async function generateSDKWithOpenAI(
           role: "user",
           content: `Here is the API documentation. Please generate a complete SDK in ${language} that wraps this API:
 
-          ${documentation}`,
+          ${truncatedDocumentation}`,
         },
       ],
       temperature: 0.2,

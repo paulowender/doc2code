@@ -96,14 +96,29 @@ const Doc2ServicePage = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText };
+        }
+
         clientLogger.error("API returned error", {
           status: response.status,
           statusText: response.statusText,
-          error: errorText,
+          error: errorData,
         });
-        throw new Error(
-          `Failed to generate SDK: ${response.status} ${response.statusText}`
-        );
+
+        // Check for token limit errors
+        if (errorData.error && errorData.error.includes("token")) {
+          toast.error(
+            "Documentation is too large. It has been truncated, but may still exceed limits. Try with a smaller document or different model."
+          );
+        } else {
+          throw new Error(
+            `Failed to generate SDK: ${response.status} ${response.statusText}`
+          );
+        }
       }
 
       const data = await response.json();
@@ -120,7 +135,22 @@ const Doc2ServicePage = () => {
       clientLogger.error("Error generating SDK", {
         error: error instanceof Error ? error.message : String(error),
       });
-      toast.error("Failed to generate SDK. Please try again.");
+      // Check for specific error types
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      if (
+        errorMsg.includes("413") ||
+        errorMsg.includes("too large") ||
+        errorMsg.includes("token")
+      ) {
+        toast.error(
+          "Documentation is too large for the selected model. Try with a smaller document or a different model."
+        );
+      } else if (errorMsg.includes("rate limit") || errorMsg.includes("429")) {
+        toast.error("Rate limit exceeded. Please wait a moment and try again.");
+      } else {
+        toast.error("Failed to generate SDK. Please try again.");
+      }
     } finally {
       setIsGenerating(false);
     }

@@ -1,5 +1,9 @@
 import axios from "axios";
 import logger from "@/lib/logger";
+import {
+  truncateToTokenLimit,
+  getModelTokenLimit,
+} from "@/lib/utils/truncateText";
 
 export async function generateSDKWithGroq(
   documentation: string,
@@ -18,7 +22,21 @@ export async function generateSDKWithGroq(
 
     // Model is passed as a parameter
 
-    logger.debug("Groq request configuration", { model, language });
+    // Get token limit for the model and truncate documentation if needed
+    const tokenLimit = getModelTokenLimit("groq", model);
+    const originalLength = documentation.length;
+    const truncatedDocumentation = truncateToTokenLimit(
+      documentation,
+      tokenLimit
+    );
+
+    if (truncatedDocumentation.length < originalLength) {
+      logger.warn(
+        `Documentation truncated from ${originalLength} characters to ${truncatedDocumentation.length} characters to fit within token limit for Groq model ${model}`
+      );
+    }
+
+    logger.debug("Groq request configuration", { model, language, tokenLimit });
 
     try {
       const response = await axios.post(
@@ -36,7 +54,7 @@ export async function generateSDKWithGroq(
               role: "user",
               content: `Here is the API documentation. Please generate a complete SDK in ${language} that wraps this API:
 
-              ${documentation}`,
+              ${truncatedDocumentation}`,
             },
           ],
           temperature: 0.2,
