@@ -19,10 +19,13 @@ try {
 
 export async function generateSDKWithOpenAI(
   documentation: string,
-  language: string
+  language: string,
+  model: string = "gpt-4-turbo"
 ): Promise<string> {
   try {
-    logger.info(`Generating SDK with OpenAI for language: ${language}`);
+    logger.info(
+      `Generating SDK with OpenAI for language: ${language} using model: ${model}`
+    );
 
     if (!openai.chat?.completions?.create) {
       logger.error("OpenAI client is not properly initialized");
@@ -35,7 +38,7 @@ export async function generateSDKWithOpenAI(
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: model,
       messages: [
         {
           role: "system",
@@ -55,7 +58,7 @@ export async function generateSDKWithOpenAI(
     });
 
     logger.info("OpenAI SDK generation successful", {
-      model: "gpt-4-turbo",
+      model,
       language,
     });
 

@@ -3,17 +3,20 @@ import logger from "@/lib/logger";
 
 export async function generateSDKWithGroq(
   documentation: string,
-  language: string
+  language: string,
+  model: string = "llama3-70b-8192"
 ): Promise<string> {
   try {
-    logger.info(`Generating SDK with Groq for language: ${language}`);
+    logger.info(
+      `Generating SDK with Groq for language: ${language} using model: ${model}`
+    );
 
     if (!process.env.GROQ_API_KEY) {
       logger.error("GROQ_API_KEY is not set");
       throw new Error("GROQ_API_KEY is not set");
     }
 
-    const model = "llama3-70b-8192";
+    // Model is passed as a parameter
 
     logger.debug("Groq request configuration", { model, language });
 

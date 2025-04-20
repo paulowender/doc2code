@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { documentation, language, aiProvider } = body;
+    const { documentation, language, aiProvider, model } = body;
 
     // Validate input
     if (!documentation || !language || !aiProvider) {
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
         documentation: !!documentation,
         language,
         aiProvider,
+        model,
       });
       return NextResponse.json(
         {
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
     logger.info("Generating SDK", {
       language,
       aiProvider,
+      model,
       documentationLength: documentation.length,
     });
 
@@ -104,13 +106,13 @@ export async function POST(request: NextRequest) {
     try {
       switch (aiProvider) {
         case "openai":
-          sdk = await generateSDKWithOpenAI(documentation, language);
+          sdk = await generateSDKWithOpenAI(documentation, language, model);
           break;
         case "openrouter":
-          sdk = await generateSDKWithOpenRouter(documentation, language);
+          sdk = await generateSDKWithOpenRouter(documentation, language, model);
           break;
         case "groq":
-          sdk = await generateSDKWithGroq(documentation, language);
+          sdk = await generateSDKWithGroq(documentation, language, model);
           break;
         default:
           logger.warn(`Invalid AI provider: ${aiProvider}`);
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
       logger.info("SDK generated successfully", {
         aiProvider,
         language,
+        model,
         sdkLength: sdk.length,
       });
 

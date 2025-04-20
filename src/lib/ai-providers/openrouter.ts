@@ -3,17 +3,20 @@ import logger from "@/lib/logger";
 
 export async function generateSDKWithOpenRouter(
   documentation: string,
-  language: string
+  language: string,
+  model: string = "anthropic/claude-3-opus"
 ): Promise<string> {
   try {
-    logger.info(`Generating SDK with OpenRouter for language: ${language}`);
+    logger.info(
+      `Generating SDK with OpenRouter for language: ${language} using model: ${model}`
+    );
 
     if (!process.env.OPENROUTER_API_KEY) {
       logger.error("OPENROUTER_API_KEY is not set");
       throw new Error("OPENROUTER_API_KEY is not set");
     }
 
-    const model = "anthropic/claude-3-opus";
+    // Model is passed as a parameter
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     logger.debug("OpenRouter request configuration", {

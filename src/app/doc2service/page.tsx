@@ -6,9 +6,11 @@ import InputArea from "@/components/doc2service/InputArea";
 import FileUpload from "@/components/doc2service/FileUpload";
 import LanguageSelector from "@/components/doc2service/LanguageSelector";
 import AIProviderSelector from "@/components/doc2service/AIProviderSelector";
+import ModelSelector from "@/components/doc2service/ModelSelector";
 import OutputArea from "@/components/doc2service/OutputArea";
 import { toast } from "react-toastify";
 import clientLogger from "@/lib/clientLogger";
+import { getDefaultModel } from "@/lib/ai-models";
 
 type AIProvider = "openai" | "openrouter" | "groq";
 type Language =
@@ -27,6 +29,7 @@ const Doc2ServicePage = () => {
     useState<Language>("javascript");
   const [selectedAIProvider, setSelectedAIProvider] =
     useState<AIProvider>("openai");
+  const [selectedModel, setSelectedModel] = useState(getDefaultModel("openai"));
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSDK, setGeneratedSDK] = useState("");
 
@@ -49,7 +52,15 @@ const Doc2ServicePage = () => {
 
   const handleAIProviderChange = (provider: AIProvider) => {
     setSelectedAIProvider(provider);
-    clientLogger.info("AI provider changed", { provider });
+    // Set default model for the new provider
+    const defaultModel = getDefaultModel(provider);
+    setSelectedModel(defaultModel);
+    clientLogger.info("AI provider changed", { provider, defaultModel });
+  };
+
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    clientLogger.info("Model changed", { model, provider: selectedAIProvider });
   };
 
   const generateSDK = async () => {
@@ -65,6 +76,7 @@ const Doc2ServicePage = () => {
     clientLogger.info("Generating SDK", {
       language: selectedLanguage,
       aiProvider: selectedAIProvider,
+      model: selectedModel,
       inputLength: inputText.length,
     });
 
@@ -78,6 +90,7 @@ const Doc2ServicePage = () => {
           documentation: inputText,
           language: selectedLanguage,
           aiProvider: selectedAIProvider,
+          model: selectedModel,
         }),
       });
 
@@ -99,6 +112,7 @@ const Doc2ServicePage = () => {
       clientLogger.info("SDK generated successfully", {
         language: selectedLanguage,
         aiProvider: selectedAIProvider,
+        model: selectedModel,
         sdkLength: data.sdk.length,
       });
     } catch (error) {
@@ -192,6 +206,14 @@ const Doc2ServicePage = () => {
               <AIProviderSelector
                 selectedProvider={selectedAIProvider}
                 onProviderChange={handleAIProviderChange}
+              />
+            </div>
+
+            <div className="mb-6">
+              <ModelSelector
+                selectedModel={selectedModel}
+                aiProvider={selectedAIProvider}
+                onModelChange={handleModelChange}
               />
             </div>
 

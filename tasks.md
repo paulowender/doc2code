@@ -22,6 +22,12 @@
   - [x] Add logging to AI provider integrations
   - [x] Add logging to client-side components
   - [x] Create log viewing script
+- [x] Add model selection for AI providers
+  - [x] Create model interface and data
+  - [x] Create model selector component
+  - [x] Update AI providers to use selected model
+  - [x] Update API to process model selection
+  - [x] Add custom scrollbar for model selection dropdown
 - [ ] Test the application
 - [ ] Deploy to production
 
@@ -34,3 +40,4 @@
 - [x] Style the application with dark theme support
 - [x] Add error handling and validation
 - [x] Implement logging system for debugging
+- [x] Add model selection for AI providers
