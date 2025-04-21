@@ -4,7 +4,8 @@ import { Fragment, useEffect } from "react";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import { AIModel, getModelsByProvider, getDefaultModel } from "@/lib/ai-models";
-import { SparklesIcon } from "lucide-react";
+import { SparklesIcon, AlertCircleIcon, TagIcon, Loader2 } from "lucide-react";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -17,19 +18,66 @@ const ModelSelector = ({
   aiProvider,
   onModelChange,
 }: ModelSelectorProps) => {
-  const models = getModelsByProvider(aiProvider);
+  // Get API keys status
+  const { apiKeys, loading, error } = useApiKeys();
+
+  // Get models for the selected provider
+  const models = apiKeys[aiProvider] ? getModelsByProvider(aiProvider) : [];
 
   // Update selected model when provider changes
   useEffect(() => {
-    if (!models.find((model) => model.id === selectedModel)) {
+    if (
+      apiKeys[aiProvider] &&
+      !models.find((model) => model.id === selectedModel)
+    ) {
       const defaultModel = getDefaultModel(aiProvider);
       onModelChange(defaultModel);
     }
-  }, [aiProvider, selectedModel, onModelChange, models]);
+  }, [aiProvider, selectedModel, onModelChange, models, apiKeys]);
 
   const selected =
     models.find((model) => model.id === selectedModel) || models[0];
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="dropdown-container">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          AI Model
+        </label>
+        <div className="relative mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 px-3 text-left shadow-sm">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-5 w-5 text-indigo-500 animate-spin mr-2" />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Loading available models...
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no token is configured, show a message instead of the selector
+  if (!apiKeys[aiProvider]) {
+    return (
+      <div className="dropdown-container">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          AI Model
+        </label>
+        <div className="relative mt-1 w-full rounded-md border border-yellow-300 dark:border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 py-2 px-3 text-left shadow-sm">
+          <div className="flex items-center">
+            <AlertCircleIcon className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0" />
+            <span className="text-sm text-yellow-700 dark:text-yellow-400">
+              No API key configured for {aiProvider}. Please add your API key to
+              .env.local
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no models are available or selected is null, return null
   if (!selected) return null;
 
   return (
@@ -48,6 +96,12 @@ const ModelSelector = ({
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 model-badge">
                   <SparklesIcon className="h-3 w-3 mr-1 flex-shrink-0" />
                   <span>Recommended</span>
+                </span>
+              )}
+              {selected.free && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 model-badge">
+                  <TagIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span>Free</span>
                 </span>
               )}
             </div>
@@ -90,6 +144,12 @@ const ModelSelector = ({
                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 model-badge">
                               <SparklesIcon className="h-3 w-3 mr-1" />
                               Recommended
+                            </span>
+                          )}
+                          {model.free && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 model-badge">
+                              <TagIcon className="h-3 w-3 mr-1" />
+                              Free
                             </span>
                           )}
                         </span>

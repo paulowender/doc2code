@@ -28,6 +28,9 @@
   - [x] Update AI providers to use selected model
   - [x] Update API to process model selection
   - [x] Add custom scrollbar for model selection dropdown
+  - [x] Add "Free" badge for free models
+  - [x] Show message when provider API key is not configured
+  - [x] Fix API key detection with client-side API endpoint
 - [x] Implement token limit handling
   - [x] Add text truncation utility
   - [x] Update AI providers to respect token limits
