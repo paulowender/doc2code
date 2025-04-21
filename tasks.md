@@ -36,6 +36,9 @@
   - [x] Update AI providers to respect token limits
   - [x] Improve error handling for token limit errors
   - [x] Add user-friendly error messages
+  - [x] Add token count preview
+  - [x] Add text minification option
+  - [x] Add chunking option for large documents
 - [ ] Test the application
 - [ ] Deploy to production
 

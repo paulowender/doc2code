@@ -7,10 +7,12 @@ import FileUpload from "@/components/doc2service/FileUpload";
 import LanguageSelector from "@/components/doc2service/LanguageSelector";
 import AIProviderSelector from "@/components/doc2service/AIProviderSelector";
 import ModelSelector from "@/components/doc2service/ModelSelector";
+import AdvancedOptions from "@/components/doc2service/AdvancedOptions";
 import OutputArea from "@/components/doc2service/OutputArea";
 import { toast } from "react-toastify";
 import clientLogger from "@/lib/clientLogger";
 import { getDefaultModel } from "@/lib/ai-models";
+import { minifyText } from "@/lib/utils/truncateText";
 
 type AIProvider = "openai" | "openrouter" | "groq";
 type Language =
@@ -32,13 +34,26 @@ const Doc2ServicePage = () => {
   const [selectedModel, setSelectedModel] = useState(getDefaultModel("openai"));
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSDK, setGeneratedSDK] = useState("");
+  const [useMinify, setUseMinify] = useState(false);
+  const [useChunking, setUseChunking] = useState(false);
+  const [processedText, setProcessedText] = useState("");
 
   const handleTextChange = (text: string) => {
     setInputText(text);
+    updateProcessedText(text, useMinify);
+  };
+
+  const updateProcessedText = (text: string, minify: boolean) => {
+    if (minify) {
+      setProcessedText(minifyText(text));
+    } else {
+      setProcessedText(text);
+    }
   };
 
   const handleFileUpload = (content: string) => {
     setInputText(content);
+    updateProcessedText(content, useMinify);
     toast.success("File uploaded successfully!");
     clientLogger.info("File uploaded successfully", {
       contentLength: content.length,
@@ -61,6 +76,17 @@ const Doc2ServicePage = () => {
   const handleModelChange = (model: string) => {
     setSelectedModel(model);
     clientLogger.info("Model changed", { model, provider: selectedAIProvider });
+  };
+
+  const handleMinifyChange = (minify: boolean) => {
+    setUseMinify(minify);
+    updateProcessedText(inputText, minify);
+    clientLogger.info("Minify option changed", { minify });
+  };
+
+  const handleChunkingChange = (chunking: boolean) => {
+    setUseChunking(chunking);
+    clientLogger.info("Chunking option changed", { chunking });
   };
 
   const generateSDK = async () => {
@@ -91,6 +117,8 @@ const Doc2ServicePage = () => {
           language: selectedLanguage,
           aiProvider: selectedAIProvider,
           model: selectedModel,
+          minify: useMinify,
+          useChunking: useChunking,
         }),
       });
 
@@ -244,6 +272,16 @@ const Doc2ServicePage = () => {
                 selectedModel={selectedModel}
                 aiProvider={selectedAIProvider}
                 onModelChange={handleModelChange}
+              />
+            </div>
+
+            <div className="mb-6">
+              <AdvancedOptions
+                text={inputText}
+                aiProvider={selectedAIProvider}
+                model={selectedModel}
+                onMinifyChange={handleMinifyChange}
+                onChunkingChange={handleChunkingChange}
               />
             </div>
 
