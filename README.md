@@ -2,6 +2,9 @@
 
 A hub of developer tools with AI integration, featuring doc2service for converting documentation into SDKs.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
+
 ## Features
 
 - **doc2service**: Convert API documentation into ready-to-use SDKs with AI integration
@@ -9,6 +12,10 @@ A hub of developer tools with AI integration, featuring doc2service for converti
   - Integration with OpenAI, OpenRouter, and Groq
   - File upload for JSON/TXT files
   - Download generated SDKs
+  - Token count preview
+  - Text minification option
+  - Chunked processing for large documents with progress tracking
+  - Free model indicators
 
 ## Getting Started
 
@@ -129,6 +136,37 @@ If you encounter issues with the application, check the logs for detailed error 
    - Missing API keys in `.env.local`
    - Rate limiting issues with AI providers
    - Network connectivity problems
+
+## Contributing
+
+Contributions are welcome and appreciated! Here's how you can contribute:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please make sure to update tests as appropriate and follow the code style of the project.
+
+### Recent Contributors
+
+A special thanks to our recent contributors who have helped improve this project:
+
+- Added token count preview
+- Implemented text minification option
+- Added chunked processing for large documents
+- Added progress tracking for chunked processing
+- Improved SDK generation quality
+- Added free model indicators
+
+## Support the Project
+
+If you find this project helpful and would like to support its development, you can make a donation via PIX:
+
+**PIX Key (Brazil):** `92ac9ad6-9ba5-48e6-8bb9-f5a9f64e09c6`
+
+Your support helps maintain and improve this open-source project!
 
 ## License
 

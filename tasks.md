@@ -43,6 +43,10 @@
   - [x] Improve SDK generation quality
   - [x] Fix progress bar updates for chunked processing
   - [x] Improve prompts for multi-part processing
+- [x] Update README with contribution information
+  - [x] Add contributor section
+  - [x] Add PIX donation information
+  - [x] Create CONTRIBUTING.md file
 - [ ] Test the application
 - [ ] Deploy to production
 
