@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import MainLayout from "@/components/MainLayout";
 import InputArea from "@/components/doc2service/InputArea";
 import FileUpload from "@/components/doc2service/FileUpload";
@@ -8,6 +8,7 @@ import LanguageSelector from "@/components/doc2service/LanguageSelector";
 import AIProviderSelector from "@/components/doc2service/AIProviderSelector";
 import ModelSelector from "@/components/doc2service/ModelSelector";
 import AdvancedOptions from "@/components/doc2service/AdvancedOptions";
+import ProgressBar from "@/components/doc2service/ProgressBar";
 import OutputArea from "@/components/doc2service/OutputArea";
 import { toast } from "react-toastify";
 import clientLogger from "@/lib/clientLogger";
@@ -36,23 +37,30 @@ const Doc2ServicePage = () => {
   const [generatedSDK, setGeneratedSDK] = useState("");
   const [useMinify, setUseMinify] = useState(false);
   const [useChunking, setUseChunking] = useState(false);
-  const [processedText, setProcessedText] = useState("");
+  // const [processedText, setProcessedText] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [progress, setProgress] = useState({
+    current: 0,
+    total: 0,
+    status: "idle",
+  });
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   const handleTextChange = (text: string) => {
-    setInputText(text);
+    // setInputText(text);
     updateProcessedText(text, useMinify);
   };
 
   const updateProcessedText = (text: string, minify: boolean) => {
     if (minify) {
-      setProcessedText(minifyText(text));
+      setInputText(minifyText(text));
     } else {
-      setProcessedText(text);
+      setInputText(text);
     }
   };
 
   const handleFileUpload = (content: string) => {
-    setInputText(content);
+    // setInputText(minifyText(content));
     updateProcessedText(content, useMinify);
     toast.success("File uploaded successfully!");
     clientLogger.info("File uploaded successfully", {
@@ -98,6 +106,7 @@ const Doc2ServicePage = () => {
 
     setIsGenerating(true);
     setGeneratedSDK("");
+    setProgress({ current: 0, total: 1, status: "initializing" });
 
     clientLogger.info("Generating SDK", {
       language: selectedLanguage,
@@ -151,13 +160,18 @@ const Doc2ServicePage = () => {
 
       const data = await response.json();
       setGeneratedSDK(data.sdk);
+      setSessionId(data.sessionId);
       toast.success("SDK generated successfully!");
       clientLogger.info("SDK generated successfully", {
         language: selectedLanguage,
         aiProvider: selectedAIProvider,
         model: selectedModel,
         sdkLength: data.sdk.length,
+        sessionId: data.sessionId,
       });
+
+      // Set progress to complete
+      setProgress({ current: 1, total: 1, status: "complete" });
     } catch (error) {
       console.error("Error generating SDK:", error);
       clientLogger.error("Error generating SDK", {
@@ -218,6 +232,59 @@ const Doc2ServicePage = () => {
 
     clientLogger.info("SDK downloaded", { fileName });
   };
+
+  // Poll for progress updates when generating SDK
+  useEffect(() => {
+    if (isGenerating && sessionId) {
+      console.log(`Starting progress polling for session ${sessionId}`);
+
+      // Fetch progress immediately
+      const fetchProgress = async () => {
+        try {
+          const response = await fetch(
+            `/api/generate-sdk/progress?sessionId=${sessionId}`
+          );
+          if (response.ok) {
+            const progressData = await response.json();
+            console.log("Progress data received:", progressData);
+            setProgress(progressData);
+
+            // If complete, stop polling
+            if (progressData.status === "complete") {
+              console.log("Processing complete, stopping polling");
+              if (progressInterval.current) {
+                clearInterval(progressInterval.current);
+                progressInterval.current = null;
+              }
+            }
+          } else {
+            console.warn(
+              "Failed to fetch progress:",
+              response.status,
+              response.statusText
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching progress", error);
+        }
+      };
+
+      // Fetch immediately
+      fetchProgress();
+
+      // Start polling for progress updates
+      progressInterval.current = setInterval(fetchProgress, 1000);
+
+      // Clean up interval on unmount or when generation is complete
+      return () => {
+        console.log("Cleaning up progress polling interval");
+        if (progressInterval.current) {
+          clearInterval(progressInterval.current);
+          progressInterval.current = null;
+        }
+      };
+    }
+  }, [isGenerating, sessionId]);
 
   // Log page view on component mount
   useEffect(() => {
@@ -284,6 +351,19 @@ const Doc2ServicePage = () => {
                 onChunkingChange={handleChunkingChange}
               />
             </div>
+
+            {isGenerating && progress.total > 0 && (
+              <div className="mb-4">
+                <ProgressBar
+                  progress={progress.current}
+                  total={progress.total}
+                  label={`Generating SDK${
+                    useChunking ? " (Processing in chunks)" : ""
+                  }`}
+                  showPercentage={true}
+                />
+              </div>
+            )}
 
             <button
               onClick={generateSDK}

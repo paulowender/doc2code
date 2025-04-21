@@ -25,7 +25,7 @@ export function minifyText(text: string, isJson: boolean = false): string {
     try {
       // For JSON, parse and stringify to remove whitespace
       const parsed = JSON.parse(text);
-      return JSON.stringify(parsed);
+      return JSON.stringify(parsed).replaceAll("\n", " ").replaceAll("\t", " ");
     } catch (e) {
       // If parsing fails, fall back to regular minification
       console.warn(
@@ -101,6 +101,7 @@ export function getModelTokenLimit(provider: string, model: string): number {
     openai: {
       "gpt-4-turbo": 128000,
       "gpt-4o": 128000,
+      "gpt-4.1-mini": 200000,
       "gpt-4": 8192,
       "gpt-3.5-turbo": 16384,
       default: 8192,

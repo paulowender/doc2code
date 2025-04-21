@@ -93,7 +93,7 @@ const AdvancedOptions = ({
                 </span>
                 <InfoIcon
                   className="h-4 w-4 ml-1 text-gray-400"
-                  title="Estimated number of tokens in your text"
+                  aria-label="Estimated number of tokens in your text"
                 />
               </div>
 

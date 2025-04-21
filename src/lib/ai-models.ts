@@ -25,13 +25,22 @@ export const openaiModels: AIModel[] = [
     maxTokens: 4096,
   },
   {
+    id: "gpt-4.1-mini",
+    name: "GPT-4.1 Mini",
+    provider: "openai",
+    description: "OpenAI's latest and most advanced model",
+    recommended: true,
+    free: true,
+    maxTokens: 4096,
+  },
+  {
     id: "gpt-4o",
     name: "GPT-4o",
     provider: "openai",
     description: "OpenAI's latest and most advanced model",
     recommended: true,
     free: false,
-    maxTokens: 4096,
+    maxTokens: 200000,
   },
   {
     id: "gpt-4",

@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai-providers";
 import logger from "@/lib/logger";
 import { minifyText, splitTextIntoChunks } from "@/lib/utils/truncateText";
+import { v4 as uuidv4 } from "uuid";
 
 // Create a rate limiter that allows 10 requests per hour
 let ratelimit: Ratelimit;
@@ -77,6 +78,28 @@ export async function POST(request: NextRequest) {
     const { documentation, language, aiProvider, model, minify, useChunking } =
       body;
 
+    // Generate a session ID for tracking progress
+    const sessionId = uuidv4();
+
+    // Initialize progress
+    await fetch(
+      `${
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      }/api/generate-sdk/progress`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId,
+          current: 0,
+          total: 1,
+          status: "initializing",
+        }),
+      }
+    );
+
     // Validate input
     if (!documentation || !language || !aiProvider) {
       logger.warn("Missing required fields", {
@@ -119,11 +142,33 @@ export async function POST(request: NextRequest) {
     let sdk: string;
 
     try {
+      // Define chunks variable outside the if block to make it accessible in the entire scope
+      let chunks: string[] = [];
+
       // If chunking is enabled and the documentation is large
       if (useChunking) {
         logger.info("Using chunking for large documentation");
-        const chunks = splitTextIntoChunks(processedDocumentation);
+        chunks = splitTextIntoChunks(processedDocumentation);
         logger.info(`Documentation split into ${chunks.length} chunks`);
+
+        // Update progress with total chunks
+        await fetch(
+          `${
+            process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+          }/api/generate-sdk/progress`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId,
+              current: 0,
+              total: chunks.length + 1, // +1 for final combination step
+              status: "processing",
+            }),
+          }
+        );
 
         if (chunks.length === 1) {
           // If only one chunk, process normally
@@ -163,9 +208,13 @@ export async function POST(request: NextRequest) {
 
           // First chunk: Generate the SDK structure
           let firstChunkPrompt =
-            `This is part 1 of ${chunks.length} of the API documentation. ` +
-            `Please create the SDK structure and implement the first part of the API. ` +
-            `Focus on creating a well-structured SDK that can be extended with more endpoints later.\n\n${chunks[0]}`;
+            `IMPORTANT: This is a multi-part task. I will send you ${chunks.length} parts of an API documentation. ` +
+            `For now, I'm only sending part 1 of ${chunks.length}. Please wait for all parts before creating the final SDK. ` +
+            `For this first part, just analyze the API structure and plan how you would create an SDK for it. ` +
+            `DO NOT start implementing the SDK yet. Just acknowledge that you've received part 1 and understand the API structure. ` +
+            `\n\nHere's the first part of the API documentation:\n\n${chunks[0]}\n\n` +
+            `Remember, just acknowledge receipt of this part and briefly describe what you see in the API. ` +
+            `Wait for all ${chunks.length} parts before creating the SDK.`;
 
           let sdkParts: string[] = [];
 
@@ -202,6 +251,25 @@ export async function POST(request: NextRequest) {
 
           sdkParts.push(sdk);
 
+          // Update progress
+          await fetch(
+            `${
+              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+            }/api/generate-sdk/progress`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sessionId,
+                current: 1,
+                total: chunks.length + 1,
+                status: "processing",
+              }),
+            }
+          );
+
           // Process remaining chunks
           for (let i = 1; i < chunks.length; i++) {
             logger.info(`Processing chunk ${i + 1} of ${chunks.length}`);
@@ -210,10 +278,14 @@ export async function POST(request: NextRequest) {
               `This is part ${i + 1} of ${
                 chunks.length
               } of the API documentation. ` +
-              `I've already created the basic SDK structure. Now I need you to implement the endpoints ` +
-              `described in this part of the documentation. Here's the documentation for this part:\n\n${chunks[i]}\n\n` +
-              `Please provide ONLY the new endpoint implementations that should be added to the existing SDK. ` +
-              `Do not repeat the SDK structure or previously implemented endpoints.`;
+              `Please just acknowledge receipt of this part and briefly describe what you see in this section of the API. ` +
+              `DO NOT start implementing anything yet. Just confirm you've received part ${
+                i + 1
+              } of ${chunks.length}. ` +
+              `\n\nHere's part ${i + 1} of the API documentation:\n\n${
+                chunks[i]
+              }\n\n` +
+              `Remember, just acknowledge receipt of this part. We'll implement the full SDK after all parts are received.`;
 
             let chunkSdk: string;
             switch (aiProvider) {
@@ -247,15 +319,61 @@ export async function POST(request: NextRequest) {
             }
 
             sdkParts.push(chunkSdk);
+
+            // Update progress
+            try {
+              const progressResponse = await fetch(
+                `${
+                  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+                }/api/generate-sdk/progress`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    sessionId,
+                    current: i + 2, // +1 for 0-indexing, +1 for first chunk already processed
+                    total: chunks.length + 1,
+                    status: "processing",
+                  }),
+                }
+              );
+
+              if (!progressResponse.ok) {
+                logger.warn(`Failed to update progress for chunk ${i + 1}`, {
+                  status: progressResponse.status,
+                  statusText: progressResponse.statusText,
+                });
+              }
+            } catch (progressError) {
+              logger.error(
+                `Error updating progress for chunk ${i + 1}`,
+                progressError
+              );
+            }
           }
 
           // Final pass to combine and clean up the SDK parts
+          // Now that we have all parts, create the actual SDK
+          // Combine all chunks into one complete documentation
+          const fullDocumentation = chunks.join("\n\n--- NEXT PART ---\n\n");
+
           const combinationPrompt =
-            `I have generated an SDK in parts. Please combine these parts into a cohesive, ` +
-            `well-structured SDK, removing any duplications or inconsistencies. Here are the parts:\n\n` +
-            sdkParts
-              .map((part, index) => `--- PART ${index + 1} ---\n${part}\n\n`)
-              .join("");
+            `Now that you have received all ${chunks.length} parts of the API documentation, please create a complete, ` +
+            `professional, production-ready SDK that wraps this API. ` +
+            `The SDK should be a complete, self-contained package that can be imported and used in any project. ` +
+            `Include proper error handling, documentation, and follow best practices for ${language}. ` +
+            `The SDK should be easy to use, with a clean and intuitive interface. ` +
+            `\n\nInclude the following in your SDK:\n` +
+            `1. A main client class that handles authentication and provides access to all API resources\n` +
+            `2. Resource classes for each major API section\n` +
+            `3. Methods for each API endpoint with proper parameter typing\n` +
+            `4. Comprehensive error handling\n` +
+            `5. Clear documentation with examples\n` +
+            `6. Proper TypeScript types/interfaces (if applicable)\n\n` +
+            `Make sure the final SDK is well-organized, follows best practices for ${language}, ` +
+            `and is ready for production use. Here is the complete API documentation:\n\n${fullDocumentation}`;
 
           switch (aiProvider) {
             case "openai":
@@ -327,9 +445,28 @@ export async function POST(request: NextRequest) {
         sdkLength: sdk.length,
       });
 
+      // Update progress to complete
+      await fetch(
+        `${
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        }/api/generate-sdk/progress`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionId,
+            current: useChunking ? chunks?.length + 1 || 1 : 1,
+            total: useChunking ? chunks?.length + 1 || 1 : 1,
+            status: "complete",
+          }),
+        }
+      );
+
       // Return the generated SDK
       return NextResponse.json(
-        { sdk },
+        { sdk, sessionId },
         {
           status: 200,
           headers: {

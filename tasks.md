@@ -39,6 +39,10 @@
   - [x] Add token count preview
   - [x] Add text minification option
   - [x] Add chunking option for large documents
+  - [x] Add progress bar for chunked processing
+  - [x] Improve SDK generation quality
+  - [x] Fix progress bar updates for chunked processing
+  - [x] Improve prompts for multi-part processing
 - [ ] Test the application
 - [ ] Deploy to production
 
